@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Backend Test</title>
+</head>
+<body>
+    <h1>后端连接测试</h1>
+    <button onclick="testBackend()">测试后端连接</button>
+    <pre id="result"></pre>
+
+    <script>
+        async function testBackend() {
+            const result = document.getElementById('result');
+            result.textContent = '测试中...\n';
+
+            // Test 1: Health check
+            try {
+                result.textContent += '\n1. 测试健康检查端点...\n';
+                const healthRes = await fetch('/api/../health');
+                const healthText = await healthRes.text();
+                result.textContent += `   状态: ${healthRes.status}\n`;
+                result.textContent += `   响应: ${healthText}\n`;
+            } catch (e) {
+                result.textContent += `   错误: ${e.message}\n`;
+            }
+
+            // Test 2: Login endpoint
+            try {
+                result.textContent += '\n2. 测试登录端点...\n';
+                const loginRes = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: 'admin@admin.com', password: 'admin' })
+                });
+                const loginText = await loginRes.text();
+                result.textContent += `   状态: ${loginRes.status}\n`;
+                result.textContent += `   响应长度: ${loginText.length} 字符\n`;
+                result.textContent += `   响应内容: ${loginText.substring(0, 200)}\n`;
+            } catch (e) {
+                result.textContent += `   错误: ${e.message}\n`;
+            }
+        }
+    </script>
+</body>
+</html>

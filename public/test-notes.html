@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>Note API 测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+        }
+
+        pre {
+            background: #f4f4f4;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+
+        .success {
+            color: green;
+        }
+
+        .error {
+            color: red;
+        }
+
+        input {
+            padding: 8px;
+            margin: 5px;
+            width: 300px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Note API 调试工具</h1>
+
+    <div>
+        <h3>1. 登录获取 Token</h3>
+        <input type="email" id="email" value="admin@admin.com" placeholder="邮箱">
+        <input type="password" id="password" value="" placeholder="密码">
+        <button onclick="login()">登录</button>
+        <div id="loginResult"></div>
+    </div>
+
+    <hr>
+
+    <div>
+        <h3>2. 获取便签列表</h3>
+        <button onclick="getNotes()">获取便签</button>
+        <div id="notesResult"></div>
+    </div>
+
+    <hr>
+
+    <div>
+        <h3>3. 创建测试便签</h3>
+        <button onclick="createTestNote()">创建测试便签</button>
+        <div id="createResult"></div>
+    </div>
+
+    <hr>
+
+    <h3>完整日志</h3>
+    <pre id="log"></pre>
+
+    <script>
+        let token = localStorage.getItem('stickytasks-token');
+
+        function log(message, isError = false) {
+            const logEl = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            const prefix = isError ? '❌ ERROR' : '✅';
+            logEl.textContent += `[${timestamp}] ${prefix} ${message}\n`;
+            console.log(message);
+        }
+
+        async function login() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const resultEl = document.getElementById('loginResult');
+
+            try {
+                log('正在登录...');
+                const res = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const text = await res.text();
+                log(`登录响应状态: ${res.status}`);
+                log(`登录响应内容: ${text.substring(0, 200)}`);
+
+                if (!res.ok) {
+                    resultEl.innerHTML = `<span class="error">登录失败: ${text}</span>`;
+                    log(`登录失败: ${text}`, true);
+                    return;
+                }
+
+                const data = JSON.parse(text);
+                token = data.token;
+                localStorage.setItem('stickytasks-token', token);
+
+                resultEl.innerHTML = `<span class="success">✅ 登录成功！用户: ${data.user.name}</span>`;
+                log(`登录成功，Token: ${token.substring(0, 20)}...`);
+            } catch (error) {
+                resultEl.innerHTML = `<span class="error">错误: ${error.message}</span>`;
+                log(`登录异常: ${error.message}`, true);
+            }
+        }
+
+        async function getNotes() {
+            const resultEl = document.getElementById('notesResult');
+
+            if (!token) {
+                resultEl.innerHTML = '<span class="error">请先登录</span>';
+                return;
+            }
+
+            try {
+                log('正在获取便签...');
+                const res = await fetch('/api/notes', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                const text = await res.text();
+                log(`获取便签响应状态: ${res.status}`);
+                log(`获取便签响应内容: ${text}`);
+
+                if (!res.ok) {
+                    resultEl.innerHTML = `<span class="error">获取失败: ${text}</span>`;
+                    log(`获取便签失败: ${text}`, true);
+                    return;
+                }
+
+                const notes = JSON.parse(text);
+                resultEl.innerHTML = `<span class="success">✅ 找到 ${notes.length} 个便签</span><pre>${JSON.stringify(notes, null, 2)}</pre>`;
+                log(`成功获取 ${notes.length} 个便签`);
+            } catch (error) {
+                resultEl.innerHTML = `<span class="error">错误: ${error.message}</span>`;
+                log(`获取便签异常: ${error.message}`, true);
+            }
+        }
+
+        async function createTestNote() {
+            const resultEl = document.getElementById('createResult');
+
+            if (!token) {
+                resultEl.innerHTML = '<span class="error">请先登录</span>';
+                return;
+            }
+
+            const testNote = {
+                id: 'test-' + Date.now(),
+                title: '测试便签',
+                color: '#fef3c7',
+                items: [
+                    { id: '1', text: '这是一个测试项目', done: false }
+                ],
+                rotation: 0,
+                zIndex: 1,
+                createdAt: Date.now()
+            };
+
+            try {
+                log('正在创建测试便签...');
+                const res = await fetch('/api/notes', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify([testNote])
+                });
+
+                const text = await res.text();
+                log(`创建便签响应状态: ${res.status}`);
+                log(`创建便签响应内容: ${text}`);
+
+                if (!res.ok) {
+                    resultEl.innerHTML = `<span class="error">创建失败: ${text}</span>`;
+                    log(`创建便签失败: ${text}`, true);
+                    return;
+                }
+
+                resultEl.innerHTML = '<span class="success">✅ 便签创建成功！</span>';
+                log('便签创建成功');
+
+                // 自动刷新便签列表
+                setTimeout(getNotes, 500);
+            } catch (error) {
+                resultEl.innerHTML = `<span class="error">错误: ${error.message}</span>`;
+                log(`创建便签异常: ${error.message}`, true);
+            }
+        }
+
+        // 页面加载时检查 token
+        window.onload = () => {
+            if (token) {
+                log(`已找到保存的 Token: ${token.substring(0, 20)}...`);
+                document.getElementById('loginResult').innerHTML = '<span class="success">✅ 已有登录 Token</span>';
+            } else {
+                log('未找到 Token，请先登录');
+            }
+        };
+    </script>
+</body>
+
+</html>

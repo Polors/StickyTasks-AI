@@ -1,0 +1,5 @@
+{
+  "name": "StickyTasks AI",
+  "description": "A visually stunning, sticky-note style Todo list application powered by Gemini to help break down complex tasks.",
+  "requestFramePermissions": []
+}

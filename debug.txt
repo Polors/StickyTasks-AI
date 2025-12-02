@@ -1,0 +1,2 @@
+console.log('App.tsx loaded');
+console.log('React version:', React.version);
