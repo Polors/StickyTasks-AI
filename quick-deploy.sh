@@ -22,4 +22,4 @@ docker compose logs --tail 50
 
 echo ""
 echo "========== 部署完成 =========="
-echo "请访问: http://192.3.180.201:8090"
+echo "请访问: http://YOUR_VPS_IP:8090"

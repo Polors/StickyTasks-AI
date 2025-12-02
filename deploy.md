@@ -1,6 +1,6 @@
 # 部署指南 (Deployment Guide)
 
-本指南将指导您如何将 StickyTasks AI 部署到您的 VPS (IP: 192.3.180.201)。
+本指南将指导您如何将 StickyTasks AI 部署到您的 VPS (IP: YOUR_VPS_IP)。
 
 ## 1. 准备工作
 
@@ -14,19 +14,19 @@
 
 ```bash
 # 假设您在项目根目录下
-scp -r . root@192.3.180.201:/opt/stickytasks
+scp -r . root@YOUR_VPS_IP:/opt/stickytasks
 ```
 
 或者，如果您只想上传必要的文件进行构建（推荐，减少上传体积）：
 
 ```bash
 # 在 VPS 上创建目录
-ssh root@192.3.180.201 "mkdir -p /opt/stickytasks"
+ssh root@YOUR_VPS_IP "mkdir -p /opt/stickytasks"
 
 # 上传必要文件
-scp Dockerfile docker-compose.yml package.json vite.config.ts tsconfig.json index.html root@192.3.180.201:/opt/stickytasks/
-scp -r src public server root@192.3.180.201:/opt/stickytasks/
-scp .env.example root@192.3.180.201:/opt/stickytasks/.env
+scp Dockerfile docker-compose.yml package.json vite.config.ts tsconfig.json index.html root@YOUR_VPS_IP:/opt/stickytasks/
+scp -r src public server root@YOUR_VPS_IP:/opt/stickytasks/
+scp .env.example root@YOUR_VPS_IP:/opt/stickytasks/.env
 ```
 
 ## 3. 配置环境变量 (重要！)
@@ -36,7 +36,7 @@ scp .env.example root@192.3.180.201:/opt/stickytasks/.env
 登录到 VPS：
 
 ```bash
-ssh root@192.3.180.201
+ssh root@YOUR_VPS_IP
 cd /opt/stickytasks
 ```
 
@@ -70,7 +70,7 @@ Docker 将会自动构建镜像并启动服务。
 
 ## 5. 验证
 
-在浏览器中访问：`http://192.3.180.201`
+在浏览器中访问：`http://YOUR_VPS_IP`
 
 您应该能看到登录页面。使用您在 `.env` 文件中设置的 `ADMIN_EMAIL` 和 `ADMIN_PASSWORD` 进行登录。
 

@@ -2,7 +2,7 @@
 
 ## 问题现象
 - localhost:8091 可以添加便签 ✅
-- VPS (192.3.180.201:8090) 点击添加便签没反应 ❌
+- VPS (YOUR_VPS_IP:8090) 点击添加便签没反应 ❌
 - 在 localhost 添加的便签能同步到 VPS ✅
 
 ## 问题原因
@@ -12,19 +12,19 @@ VPS 上的浏览器缓存了旧版本的 JavaScript 代码。
 
 ### 方案 1：清除浏览器缓存（最简单）
 
-1. 在 VPS 页面 (http://192.3.180.201:8090) 按 `Ctrl + Shift + R` (Windows) 或 `Cmd + Shift + R` (Mac) **强制刷新**
+1. 在 VPS 页面 (http://YOUR_VPS_IP:8090) 按 `Ctrl + Shift + R` (Windows) 或 `Cmd + Shift + R` (Mac) **强制刷新**
 2. 或者按 F12 打开开发者工具，右键点击刷新按钮，选择"清空缓存并硬性重新加载"
 
 ### 方案 2：使用无痕模式测试
 
 1. 打开浏览器的无痕/隐私模式
-2. 访问 http://192.3.180.201:8090
+2. 访问 http://YOUR_VPS_IP:8090
 3. 登录并测试添加便签
 
 ### 方案 3：在 VPS 上重新构建（确保最新代码）
 
 ```bash
-ssh root@192.3.180.201
+ssh root@YOUR_VPS_IP
 cd /opt/stickytasks/DeskTopNote
 
 # 完全清理
@@ -90,7 +90,7 @@ fetch('/api/notes', {
 
 检查 VPS 上的构建文件：
 ```bash
-ssh root@192.3.180.201
+ssh root@YOUR_VPS_IP
 docker exec -it desktopnote-app-1 ls -lh /app/public/
 ```
 

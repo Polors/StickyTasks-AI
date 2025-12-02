@@ -42,28 +42,28 @@ DB_PATH=/data/database.sqlite
 ### 方法一：上传整个项目（推荐）
 ```bash
 # 在本地项目根目录执行
-scp -r . root@192.3.180.201:/opt/stickytasks/DeskTopNote
+scp -r . root@YOUR_VPS_IP:/opt/stickytasks/DeskTopNote
 ```
 
 ### 方法二：只上传必要文件（节省时间）
 ```bash
 # 上传前端文件
-scp App.tsx index.tsx index.html package.json tsconfig.json vite.config.ts root@192.3.180.201:/opt/stickytasks/DeskTopNote/
-scp -r components services root@192.3.180.201:/opt/stickytasks/DeskTopNote/
-scp types.ts root@192.3.180.201:/opt/stickytasks/DeskTopNote/
+scp App.tsx index.tsx index.html package.json tsconfig.json vite.config.ts root@YOUR_VPS_IP:/opt/stickytasks/DeskTopNote/
+scp -r components services root@YOUR_VPS_IP:/opt/stickytasks/DeskTopNote/
+scp types.ts root@YOUR_VPS_IP:/opt/stickytasks/DeskTopNote/
 
 # 上传后端文件
-scp -r server/src server/package.json root@192.3.180.201:/opt/stickytasks/DeskTopNote/server/
+scp -r server/src server/package.json root@YOUR_VPS_IP:/opt/stickytasks/DeskTopNote/server/
 
 # 上传部署文件
-scp Dockerfile docker-compose.yml .dockerignore root@192.3.180.201:/opt/stickytasks/DeskTopNote/
+scp Dockerfile docker-compose.yml .dockerignore root@YOUR_VPS_IP:/opt/stickytasks/DeskTopNote/
 ```
 
 ## VPS 上的操作步骤
 
 1. **SSH 登录到 VPS**
    ```bash
-   ssh root@192.3.180.201
+   ssh root@YOUR_VPS_IP
    cd /opt/stickytasks/DeskTopNote
    ```
 
@@ -90,7 +90,7 @@ scp Dockerfile docker-compose.yml .dockerignore root@192.3.180.201:/opt/stickyta
    ```
 
 6. **访问应用**
-   打开浏览器访问：`http://192.3.180.201:8090`
+   打开浏览器访问：`http://YOUR_VPS_IP:8090`
 
 ## 注意事项
 
