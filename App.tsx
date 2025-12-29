@@ -6,6 +6,7 @@ import { AuthScreen } from './components/Auth';
 import { SettingsModal } from './components/Settings';
 import { AdminDashboard } from './components/AdminDashboard';
 import { AIAssistant } from './components/AIAssistant';
+import { UpdateLog } from './components/UpdateLog';
 import { authService, storageService } from './services/storage';
 import { generateUUID } from './utils/uuid';
 
@@ -117,17 +118,17 @@ const App: React.FC = () => {
     }
   };
 
-  const addNote = () => {
+  const addNote = (title?: string, items?: TodoItem[]) => {
     const randomRotation = Math.random() * 6 - 3;
 
-    // Use user preference if available, otherwise random
-    const color = user?.settings.defaultColor || COLORS[Math.floor(Math.random() * COLORS.length)];
+    // Always use a random color for new notes to prevent "white/transparent" issue and add variety
+    const color = COLORS[Math.floor(Math.random() * COLORS.length)];
 
     const newNote: Note = {
       id: generateUUID(),
-      title: 'Untitled',
+      title: title || 'Untitled',
       color: color,
-      items: [],
+      items: items || [],
       rotation: randomRotation,
       zIndex: maxZIndex + 1,
       createdAt: Date.now(),
@@ -147,6 +148,10 @@ const App: React.FC = () => {
     setNotes((prev) => prev.filter((note) => note.id !== id));
   };
 
+  const batchDeleteNotes = (ids: string[]) => {
+    setNotes((prev) => prev.filter((note) => !ids.includes(note.id)));
+  };
+
   const bringToFront = (id: string) => {
     setNotes((prev) =>
       prev.map((note) =>
@@ -154,6 +159,32 @@ const App: React.FC = () => {
       )
     );
     setMaxZIndex((prev) => prev + 1);
+  };
+
+  const moveNote = (id: string, newIndex: number) => {
+    setNotes((prev) => {
+      const currentIndex = prev.findIndex(n => n.id === id);
+      if (currentIndex === -1) return prev;
+
+      const newNotes = [...prev];
+      const [note] = newNotes.splice(currentIndex, 1);
+      // Clamp index to valid range
+      const targetIndex = Math.max(0, Math.min(newIndex, prev.length - 1));
+      newNotes.splice(targetIndex, 0, note);
+      return newNotes;
+    });
+  };
+
+  const swapNotes = (id1: string, id2: string) => {
+    setNotes((prev) => {
+      const idx1 = prev.findIndex(n => n.id === id1);
+      const idx2 = prev.findIndex(n => n.id === id2);
+      if (idx1 === -1 || idx2 === -1) return prev;
+
+      const newNotes = [...prev];
+      [newNotes[idx1], newNotes[idx2]] = [newNotes[idx2], newNotes[idx1]];
+      return newNotes;
+    });
   };
 
   const handleDragStart = (e: React.DragEvent, noteId: string) => {
@@ -233,6 +264,8 @@ const App: React.FC = () => {
             <Settings size={20} />
           </button>
 
+          <UpdateLog />
+
           <button
             onClick={handleLogout}
             className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors"
@@ -294,7 +327,15 @@ const App: React.FC = () => {
       />
 
       {/* AI Assistant */}
-      <AIAssistant notes={notes} />
+      <AIAssistant
+        notes={notes}
+        onAddNote={addNote}
+        onUpdateNote={updateNote}
+        onDeleteNote={deleteNote}
+        onBatchDeleteNotes={batchDeleteNotes}
+        onMoveNote={moveNote}
+        onSwapNotes={swapNotes}
+      />
 
       {/* Footer Info */}
       <footer className="fixed bottom-4 right-6 text-xs text-gray-400 font-medium pointer-events-none select-none">

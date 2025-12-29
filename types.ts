@@ -14,6 +14,7 @@ export interface TodoItem {
   id: string;
   text: string;
   done: boolean;
+  tips?: string;
 }
 
 export interface Note {

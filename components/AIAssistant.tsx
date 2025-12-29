@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { MessageCircle, X, Send, Sparkles, Bot, User } from 'lucide-react';
-import { Note } from '../types';
+import { Note, TodoItem } from '../types';
 
 interface Message {
     role: 'user' | 'assistant' | 'system';
@@ -9,9 +9,15 @@ interface Message {
 
 interface AIAssistantProps {
     notes: Note[];
+    onAddNote: (title: string, items: TodoItem[]) => void;
+    onUpdateNote: (id: string, updates: Partial<Note>) => void;
+    onDeleteNote: (id: string) => void;
+    onBatchDeleteNotes: (ids: string[]) => void;
+    onMoveNote: (id: string, index: number) => void;
+    onSwapNotes: (id1: string, id2: string) => void;
 }
 
-export const AIAssistant: React.FC<AIAssistantProps> = ({ notes }) => {
+export const AIAssistant: React.FC<AIAssistantProps> = ({ notes, onAddNote, onUpdateNote, onDeleteNote, onBatchDeleteNotes, onMoveNote, onSwapNotes }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState<Message[]>([
         { role: 'assistant', content: 'Hi! I\'m your StickyTasks assistant. I can help you organize your notes or answer questions about them. How can I help?' }
@@ -60,10 +66,11 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ notes }) => {
         setIsLoading(true);
 
         try {
-            // Prepare context: simplify notes to save tokens
+            // Prepare context: include IDs for actions
             const context = notes.map(n => ({
+                id: n.id,
                 title: n.title,
-                items: n.items.map(i => ({ text: i.text, done: i.done })),
+                items: n.items.map(i => ({ id: i.id, text: i.text, done: i.done })),
                 color: n.color
             }));
 
@@ -79,9 +86,157 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ notes }) => {
             if (!response.ok) throw new Error('Failed to get response');
 
             const data = await response.json();
+            let content = data.choices[0].message.content;
+
+            // Check for action block
+            const actionBlockRegex = /```json\s*(\{[\s\S]*?"action":\s*"[\w_]+"[\s\S]*?\})\s*```/;
+            const match = content.match(actionBlockRegex);
+
+            if (match) {
+                try {
+                    const actionData = JSON.parse(match[1]);
+                    console.log('AI Action:', actionData);
+
+                    switch (actionData.action) {
+                        case 'create_note': {
+                            // Convert string items to TodoItems
+                            const todoItems = (actionData.items || []).map((text: string) => ({
+                                id: Math.random().toString(36).substr(2, 9),
+                                text,
+                                done: false
+                            }));
+                            onAddNote(actionData.title, todoItems);
+                            content += "\n\n(✅ New note created successfully!)";
+                            break;
+                        }
+
+                        case 'update_note': {
+                            if (actionData.id) {
+                                const updates: Partial<Note> = {};
+                                if (actionData.title !== undefined) updates.title = actionData.title;
+                                if (actionData.color !== undefined) {
+                                    const colorMap: Record<string, string> = {
+                                        '#ffeb3b': 'bg-paper-yellow',
+                                        '#a7f3d0': 'bg-paper-green',
+                                        '#bfdbfe': 'bg-paper-blue',
+                                        '#fbcfe8': 'bg-paper-pink',
+                                        '#ddd6fe': 'bg-paper-purple',
+                                        '#fed7aa': 'bg-paper-orange',
+                                    };
+                                    // fuzzy match or exact match
+                                    updates.color = (colorMap[actionData.color] || actionData.color) as any;
+                                }
+
+                                onUpdateNote(actionData.id, updates);
+                                content += "\n\n(✅ Note updated.)";
+                            }
+                            break;
+                        }
+
+                        case 'delete_note': {
+                            if (actionData.id) {
+                                onDeleteNote(actionData.id);
+                                content += "\n\n(🗑️ Note deleted.)";
+                            }
+                            break;
+                        }
+
+                        case 'delete_notes_bulk': {
+                            if (actionData.ids && Array.isArray(actionData.ids)) {
+                                const count = actionData.ids.length;
+                                if (count > 0) {
+                                    const confirmed = window.confirm(`⚠️ Warning: Batch Deletion\n\nAre you sure you want to delete ${count} notes?`);
+                                    if (confirmed) {
+                                        onBatchDeleteNotes(actionData.ids);
+                                        content += `\n\n(🗑️ Successfully deleted ${count} notes.)`;
+                                    } else {
+                                        content += "\n\n(❌ Deletion cancelled by user.)";
+                                    }
+                                }
+                            }
+                            break;
+                        }
+
+                        case 'move_note': {
+                            if (actionData.id && actionData.position !== undefined) {
+                                let targetIndex = 0;
+                                if (actionData.position === 'start' || actionData.position === 'top' || actionData.position === 'first') {
+                                    targetIndex = 0;
+                                } else if (actionData.position === 'end' || actionData.position === 'bottom' || actionData.position === 'last') {
+                                    targetIndex = notes.length - 1;
+                                } else if (typeof actionData.position === 'number') {
+                                    targetIndex = actionData.position;
+                                }
+                                onMoveNote(actionData.id, targetIndex);
+                                content += "\n\n(✅ Note moved.)";
+                            }
+                            break;
+                        }
+
+                        case 'swap_notes': {
+                            if (actionData.id1 && actionData.id2) {
+                                onSwapNotes(actionData.id1, actionData.id2);
+                                content += "\n\n(✅ Notes swapped.)";
+                            }
+                            break;
+                        }
+
+                        case 'add_task': {
+                            if (actionData.noteId && actionData.task) {
+                                const note = notes.find(n => n.id === actionData.noteId);
+                                if (note) {
+                                    const newItem = {
+                                        id: Math.random().toString(36).substr(2, 9),
+                                        text: actionData.task,
+                                        done: false
+                                    };
+                                    onUpdateNote(actionData.noteId, { items: [...note.items, newItem] });
+                                    content += "\n\n(✅ Task added.)";
+                                }
+                            }
+                            break;
+                        }
+
+                        case 'delete_task': {
+                            if (actionData.noteId && actionData.taskId) {
+                                const note = notes.find(n => n.id === actionData.noteId);
+                                if (note) {
+                                    const newItems = note.items.filter(i => i.id !== actionData.taskId);
+                                    onUpdateNote(actionData.noteId, { items: newItems });
+                                    content += "\n\n(🗑️ Task deleted.)";
+                                }
+                            }
+                            break;
+                        }
+
+                        case 'update_task': {
+                            if (actionData.noteId && actionData.taskId) {
+                                const note = notes.find(n => n.id === actionData.noteId);
+                                if (note) {
+                                    const newItems = note.items.map(i => {
+                                        if (i.id === actionData.taskId) {
+                                            const updatedItem = { ...i };
+                                            if (actionData.text !== undefined) updatedItem.text = actionData.text;
+                                            if (actionData.done !== undefined) updatedItem.done = actionData.done;
+                                            return updatedItem;
+                                        }
+                                        return i;
+                                    });
+                                    onUpdateNote(actionData.noteId, { items: newItems });
+                                    content += "\n\n(✅ Task updated.)";
+                                }
+                            }
+                            break;
+                        }
+                    }
+                } catch (e) {
+                    console.error("Failed to parse action block", e);
+                }
+            }
+
             const assistantMessage: Message = {
                 role: 'assistant',
-                content: data.choices[0].message.content
+                content: content
             };
 
             setMessages(prev => [...prev, assistantMessage]);
@@ -136,8 +291,8 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ notes }) => {
                         <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                             <div
                                 className={`max-w-[80%] p-3 rounded-2xl text-sm ${msg.role === 'user'
-                                        ? 'bg-blue-600 text-white rounded-br-none'
-                                        : 'bg-white text-gray-800 shadow-sm border border-gray-100 rounded-bl-none'
+                                    ? 'bg-blue-600 text-white rounded-br-none'
+                                    : 'bg-white text-gray-800 shadow-sm border border-gray-100 rounded-bl-none'
                                     }`}
                             >
                                 {msg.content}
